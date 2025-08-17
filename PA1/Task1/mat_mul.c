@@ -21,7 +21,6 @@
 // defines
 // NOTE: you can change this value as per your requirement
 #define TILE_SIZE	100		// size of the tile for blocking
-
 /**
  * @brief 		Performs matrix multiplication of two matrices.
  * @param 		A 			pointer to the first matrix
@@ -47,8 +46,26 @@ void naive_mat_mul(double *A, double *B, double *C, int size) {
  * @param 		C 			pointer to the resultant matrix
  * @param 		size 		dimension of the matrices
  */
+
 void loop_opt_mat_mul(double *A, double *B, double *C, int size){
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
+        for (int i = 0; i < size; i++) {
+                for (int j = 0; j < size; j = j + 1) {
+                	int C1 = 0, C2 = 0, C3 = 0, C4 = 0, C5 = 0, C6 = 0, C7 = 0;
+                        for (int k = 0; k < size; k = k + 8) {
+                                C[i * size + j] += A[i * size + k] * B[k * size + j];
+                                C1 += A[i * size + k + 1] * B[(k + 1) * size + j];
+                                C2 += A[i * size + k + 2] * B[(k + 2) * size + j];
+                                C3 += A[i * size + k + 3] * B[(k + 3) * size + j];
+                                C4 += A[i * size + k + 4] * B[(k + 4) * size + j];
+                                C5 += A[i * size + k + 5] * B[(k + 5) * size + j];
+                                C6 += A[i * size + k + 6] * B[(k + 6) * size + j];
+                                C7 += A[i * size + k + 7] * B[(k + 7) * size + j];
+                        }
+                        C[i * size + j] += C1 + C2 + C3 + C4 + C5 + C6 + C7;  
+                }
+                
+        }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------
 
