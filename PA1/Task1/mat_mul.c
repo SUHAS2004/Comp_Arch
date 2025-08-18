@@ -20,7 +20,7 @@
 
 // defines
 // NOTE: you can change this value as per your requirement
-#define TILE_SIZE	100		// size of the tile for blocking
+#define TILE_SIZE	256	// size of the tile for blocking
 /**
  * @brief 		Performs matrix multiplication of two matrices.
  * @param 		A 			pointer to the first matrix
@@ -51,18 +51,18 @@ void loop_opt_mat_mul(double *A, double *B, double *C, int size){
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
         for (int i = 0; i < size; i++) {
                 for (int j = 0; j < size; j = j + 1) {
-                	int C1 = 0, C2 = 0, C3 = 0, C4 = 0, C5 = 0, C6 = 0, C7 = 0;
-                        for (int k = 0; k < size; k = k + 8) {
-                                C[i * size + j] += A[i * size + k] * B[k * size + j];
-                                C1 += A[i * size + k + 1] * B[(k + 1) * size + j];
-                                C2 += A[i * size + k + 2] * B[(k + 2) * size + j];
-                                C3 += A[i * size + k + 3] * B[(k + 3) * size + j];
-                                C4 += A[i * size + k + 4] * B[(k + 4) * size + j];
-                                C5 += A[i * size + k + 5] * B[(k + 5) * size + j];
-                                C6 += A[i * size + k + 6] * B[(k + 6) * size + j];
-                                C7 += A[i * size + k + 7] * B[(k + 7) * size + j];
-                        }
-                        C[i * size + j] += C1 + C2 + C3 + C4 + C5 + C6 + C7;  
+                	double C1 = 0, C2 = 0, C3 = 0, C4 = 0, C5 = 0, C6 = 0, C7 = 0;
+					for (int k = 0; k < size; k = k + 8) {
+							C[i * size + j] += A[i * size + k] * B[k * size + j];
+							C1 += A[i * size + k + 1] * B[(k + 1) * size + j];
+							C2 += A[i * size + k + 2] * B[(k + 2) * size + j];
+							C3 += A[i * size + k + 3] * B[(k + 3) * size + j];
+							C4 += A[i * size + k + 4] * B[(k + 4) * size + j];
+							C5 += A[i * size + k + 5] * B[(k + 5) * size + j];
+							C6 += A[i * size + k + 6] * B[(k + 6) * size + j];
+							C7 += A[i * size + k + 7] * B[(k + 7) * size + j];
+					}
+					C[i * size + j] += C1 + C2 + C3 + C4 + C5 + C6 + C7;  
                 }
                 
         }
@@ -85,7 +85,20 @@ void loop_opt_mat_mul(double *A, double *B, double *C, int size){
 */
 void tile_mat_mul(double *A, double *B, double *C, int size, int tile_size) {
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    
+	for(int I = 0; I < size; I = I + tile_size){
+		for(int J = 0; J < size; J = J + tile_size){
+			for(int K = 0; K < size; K = K + tile_size){
+				for (int i = I; i < I + tile_size; i++) {
+					for (int j = J; j < J + tile_size; j++) {
+						for (int k = K; k < K + tile_size; k++) {
+							C[i * size + j] += A[i * size + k] * B[k * size + j];
+						}
+					}
+				}
+
+			}
+		} 
+	}   
 
 //-------------------------------------------------------------------------------------------------------------------------------------------
     
@@ -101,7 +114,24 @@ void tile_mat_mul(double *A, double *B, double *C, int size, int tile_size) {
 */
 void simd_mat_mul(double *A, double *B, double *C, int size) {
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j = j + 1) {
+			__m256d sum = _mm256_setzero_pd();  // initialize the sum array to zero
+			for (int k = 0; k < size; k = k + 4) { // the sum array will take 
+				__m256d A1 = _mm256_loadu_pd(&A[i*size + k]); // Load four elements from i th row of A at once
+				double B0[4] = {B[k*size + j],B[ (k+1)*size + j],B[ (k+2)*size + j],B[ (k+3)*size + j]}; // Load four elements from j th column of B at once
+				__m256d B1 = _mm256_loadu_pd(B0);
+				sum = _mm256_fmadd_pd(A1,B1,sum);
+			}
+			// Horizontal sum of the 4 products
+			double result_array[4];
+			_mm256_storeu_pd(result_array,sum);
+			for (int k = 0; k <4; k = k + 1) {
+				C[i * size + j] += result_array[k];  
+			}
+		}
+                
+    }
 
 //-------------------------------------------------------------------------------------------------------------------------------------------
     
@@ -161,6 +191,7 @@ int main(int argc, char **argv) {
 		auto end = std::chrono::high_resolution_clock::now();
 		auto time_naive_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		printf("Normal matrix multiplication took %ld ms to execute \n\n", time_naive_mat_mul);
+		printf("Value of myDouble using naive: %lf\n", C[55]);
 
 	#ifdef OPTIMIZE_LOOP_OPT
 		// Task 1a: perform matrix multiplication with loop optimization
@@ -174,6 +205,7 @@ int main(int argc, char **argv) {
 		auto time_loop_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		printf("Loop optimized matrix multiplication took %ld ms to execute \n", time_loop_mat_mul);
 		printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_loop_mat_mul);
+		printf("Value of myDouble using unrolling: %lf\n", C[55]);
 	#endif
 
 	#ifdef OPTIMIZE_TILING
@@ -188,6 +220,7 @@ int main(int argc, char **argv) {
 		auto time_tiling_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		printf("Tiling matrix multiplication took %ld ms to execute \n", time_tiling_mat_mul);
 		printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_tiling_mat_mul);
+		printf("Value of myDouble using tiling: %lf\n", C[55]);
 	#endif
 
 	#ifdef OPTIMIZE_SIMD
@@ -203,6 +236,7 @@ int main(int argc, char **argv) {
 
 		printf("SIMD matrix multiplication took %ld ms to execute \n", time_simd_mat_mul);
 		printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_simd_mat_mul);
+		printf("Value of myDouble using simd: %lf\n", C[55]);
 	#endif
 
 	#ifdef OPTIMIZE_COMBINED
@@ -227,3 +261,4 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 }
+

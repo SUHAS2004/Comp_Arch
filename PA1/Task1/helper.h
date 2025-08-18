@@ -1,6 +1,8 @@
 #ifndef HELPER_H
 #define HELPER_H
 #define OPTIMIZE_LOOP_OPT
+#define OPTIMIZE_TILING
+#define OPTIMIZE_SIMD
 /**
  * @brief 		Generates random numbers between values fMin and fMax.
  * @param 		fMin 	lower range
