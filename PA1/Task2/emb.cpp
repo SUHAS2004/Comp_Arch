@@ -10,10 +10,10 @@ using namespace std;
 using namespace std::chrono;
 
 const int embedding_table_size = 1000000;
-const int embedding_dim = 128;
-const int input_size = 720;
+const int embedding_dim = 256;
+const int input_size = 1024;
 const int num_bags = 20;
-
+const int pref_dist = 128;
 
 int random_int(int range) {
     static random_device rd;
@@ -27,7 +27,23 @@ long long run_with_prefetching(const vector<float>& embedding_table, const vecto
     auto start = high_resolution_clock::now();
     
     //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    
+           vector<vector<float>> output;
+
+    for (size_t i = 0; i < offsets.size(); ++i) {
+        int start_idx = offsets[i];
+        int end_idx = (i + 1 < offsets.size()) ? offsets[i + 1] : input.size();
+
+        vector<float> bag_embedding(embedding_dim, 0.0f);
+        for (int j = start_idx; j < end_idx; ++j) {
+            _mm_prefetch(&embedding_table[input[j + pref_dist]*embedding_dim],_MM_HINT_T1);
+            const float* data_ptr = &embedding_table[input[j] * embedding_dim];
+            for (int d = 0; d < embedding_dim; ++d) {
+                bag_embedding[d] += data_ptr[d];
+            }
+        }
+
+        output.push_back(bag_embedding);
+    } 
     
     //-------------------------------------------------------------------------------------------------------------------------------------------
     
@@ -43,7 +59,28 @@ long long run_with_simd(const vector<float>& embedding_table, const vector<int>&
     auto start = high_resolution_clock::now();
     
     //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    
+
+        vector<vector<float>> output;
+
+    for (size_t i = 0; i < offsets.size(); ++i) {
+        int start_idx = offsets[i];
+        int end_idx = (i + 1 < offsets.size()) ? offsets[i + 1] : input.size();
+
+        vector<float> bag_embedding(embedding_dim, 0.0f);
+        __m256 sum = _mm256_setzero_ps();
+        for (int j = start_idx; j < end_idx; ++j) {
+            const float* data_ptr = &embedding_table[input[j] * embedding_dim];
+            for (int d = 0; d < embedding_dim; d = d+8) {
+                __m256 simd_reg = _mm256_loadu_ps(data_ptr);
+                sum = _mm256_add_ps(sum,simd_reg);
+            }
+            float result_array[8];
+            _mm256_storeu_ps(result_array,sum);
+            for (int k = 0; k < 8; k++){
+            bag_embedding[j] += result_array[k];
+            }   
+        }
+    }
     
     //-------------------------------------------------------------------------------------------------------------------------------------------
     
@@ -59,7 +96,28 @@ long long run_with_prefetching_simd(const vector<float>& embedding_table, const 
     auto start = high_resolution_clock::now();
     
     //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    
+            vector<vector<float>> output;
+
+    for (size_t i = 0; i < offsets.size(); ++i) {
+        int start_idx = offsets[i];
+        int end_idx = (i + 1 < offsets.size()) ? offsets[i + 1] : input.size();
+
+        vector<float> bag_embedding(embedding_dim, 0.0f);
+        __m256 sum = _mm256_setzero_ps();
+        for (int j = start_idx; j < end_idx; ++j) {
+            _mm_prefetch(&embedding_table[input[j + pref_dist]*embedding_dim],_MM_HINT_T0);
+            const float* data_ptr = &embedding_table[input[j] * embedding_dim];
+            for (int d = 0; d < embedding_dim; d = d+8) {
+                __m256 simd_reg = _mm256_loadu_ps(data_ptr);
+                sum = _mm256_add_ps(sum,simd_reg);
+            }
+            float result_array[8];
+            _mm256_storeu_ps(result_array,sum);
+            for (int k = 0; k < 8; k++){
+                bag_embedding[j] += result_array[k];
+            }   
+        }
+    }
     
     //-------------------------------------------------------------------------------------------------------------------------------------------
     
@@ -89,8 +147,7 @@ long long naive_emb(vector<float>& embedding_table, const vector<int>& input, co
             }
         }
 
-        output.push_back(bag_embedding);
-    }
+        output.push_back(bag_embedding);} 
 
     auto end = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(end - start);

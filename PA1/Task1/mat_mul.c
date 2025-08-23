@@ -190,8 +190,8 @@ int main(int argc, char **argv) {
 		naive_mat_mul(A, B, C, size);
 		auto end = std::chrono::high_resolution_clock::now();
 		auto time_naive_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-		printf("Normal matrix multiplication took %ld ms to execute \n\n", time_naive_mat_mul);
-		printf("Value of myDouble using naive: %lf\n", C[55]);
+		printf("Normal matrix multiplication took %ld ms to execute \n", time_naive_mat_mul);
+		printf("Value of myDouble using naive: %lf\n\n", C[55]);
 
 	#ifdef OPTIMIZE_LOOP_OPT
 		// Task 1a: perform matrix multiplication with loop optimization
@@ -204,8 +204,8 @@ int main(int argc, char **argv) {
 		end = std::chrono::high_resolution_clock::now();
 		auto time_loop_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		printf("Loop optimized matrix multiplication took %ld ms to execute \n", time_loop_mat_mul);
-		printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_loop_mat_mul);
-		printf("Value of myDouble using unrolling: %lf\n", C[55]);
+		printf("Normalized performance: %f \n", (double)time_naive_mat_mul / time_loop_mat_mul);
+		printf("Value of myDouble using unrolling: %lf\n\n", C[55]);
 	#endif
 
 	#ifdef OPTIMIZE_TILING
@@ -219,8 +219,8 @@ int main(int argc, char **argv) {
 		end = std::chrono::high_resolution_clock::now();
 		auto time_tiling_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		printf("Tiling matrix multiplication took %ld ms to execute \n", time_tiling_mat_mul);
-		printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_tiling_mat_mul);
-		printf("Value of myDouble using tiling: %lf\n", C[55]);
+		printf("Normalized performance: %f \n", (double)time_naive_mat_mul / time_tiling_mat_mul);
+		printf("Value of myDouble using tiling: %lf\n\n", C[55]);
 	#endif
 
 	#ifdef OPTIMIZE_SIMD
@@ -235,8 +235,8 @@ int main(int argc, char **argv) {
 		auto time_simd_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
 		printf("SIMD matrix multiplication took %ld ms to execute \n", time_simd_mat_mul);
-		printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_simd_mat_mul);
-		printf("Value of myDouble using simd: %lf\n", C[55]);
+		printf("Normalized performance: %f \n", (double)time_naive_mat_mul / time_simd_mat_mul);
+		printf("Value of myDouble using simd: %lf\n\n", C[55]);
 	#endif
 
 	#ifdef OPTIMIZE_COMBINED
